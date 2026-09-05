@@ -7,7 +7,7 @@ transcript -> extraction -> SOAP note + action summary.
 
 from fastapi import APIRouter, HTTPException
 
-from models.schemas import (
+from app.models.schemas import (
     TranscriptRequest,
     ExtractionRequest,
     ExtractionResult,
@@ -15,9 +15,9 @@ from models.schemas import (
     ActionSummary,
     ProcessResponse,
 )
-from pipeline.extraction import extract_clinical_info
-from pipeline.soap_generator import generate_soap
-from pipeline.action_summary import generate_actions
+from app.pipeline.extraction import extract_clinical_info
+from app.pipeline.soap_generator import generate_soap
+from app.pipeline.action_summary import generate_actions
 
 router = APIRouter(prefix="/consultations", tags=["consultations"])
 

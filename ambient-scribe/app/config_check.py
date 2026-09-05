@@ -24,7 +24,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 def main() -> int:
     import os
 
-    from models import llm_client as client
+    from app.models import llm_client as client
 
     alias = sys.argv[1] if len(sys.argv) > 1 else "70b"
 

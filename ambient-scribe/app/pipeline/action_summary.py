@@ -6,9 +6,9 @@ generate_actions(extraction) -> dict
 
 import json
 
-from models.llm_client import call_llm, safe_json_parse
-from models.schemas import ExtractionResult, ActionSummary
-from pipeline.prompts import ACTIONS_SYSTEM_PROMPT, ACTIONS_USER_PROMPT_TEMPLATE
+from app.models.llm_client import call_llm, safe_json_parse
+from app.models.schemas import ExtractionResult, ActionSummary
+from app.pipeline.prompts import ACTIONS_SYSTEM_PROMPT, ACTIONS_USER_PROMPT_TEMPLATE
 
 
 def generate_actions(extraction, model: str = "8b") -> dict:

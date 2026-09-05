@@ -5,6 +5,7 @@ Pydantic schemas shared by the clinical intelligence pipeline
 (extraction -> SOAP -> actions) and the /consultations router.
 """
 
+from enum import Enum
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -100,3 +101,49 @@ class ProcessResponse(BaseModel):
     extraction: ExtractionResult
     soap_note: str
     actions: ActionSummary
+
+
+# ---------------------------------------------------------------
+# API schemas (used by routers/api.py - Person C integration)
+# ---------------------------------------------------------------
+
+class TranscriptSegment(BaseModel):
+    speaker: str
+    start: float
+    end: float
+    text: str
+
+
+class JobStatusEnum(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class ConsultationResult(BaseModel):
+    transcript: List[TranscriptSegment]
+    extraction: ExtractionResult
+    soap_note: str
+    actions: ActionSummary
+
+
+class ConsultationUploadResponse(BaseModel):
+    job_id: str
+    status: str
+
+
+class JobStatusResponse(BaseModel):
+    job_id: str
+    status: str
+    progress: int = 0
+    step: str = ""
+    result: Optional[ConsultationResult] = None
+    error: Optional[str] = None
+
+
+class ApiStatusResponse(BaseModel):
+    status: str
+    llm_backend: str
+    whisper_model: str
+    diarization_model: str

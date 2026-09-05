@@ -6,9 +6,9 @@ generate_soap(extraction) -> str
 
 import json
 
-from models.llm_client import call_llm
-from models.schemas import ExtractionResult
-from pipeline.prompts import SOAP_SYSTEM_PROMPT, SOAP_USER_PROMPT_TEMPLATE
+from app.models.llm_client import call_llm
+from app.models.schemas import ExtractionResult
+from app.pipeline.prompts import SOAP_SYSTEM_PROMPT, SOAP_USER_PROMPT_TEMPLATE
 
 
 def generate_soap(extraction, model: str = "8b") -> str:

@@ -5,9 +5,9 @@ extract_clinical_info(transcript) -> dict, validated against
 models.schemas.ExtractionResult.
 """
 
-from models.llm_client import call_llm, safe_json_parse
-from models.schemas import ExtractionResult
-from pipeline.prompts import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT_TEMPLATE
+from app.models.llm_client import call_llm, safe_json_parse
+from app.models.schemas import ExtractionResult
+from app.pipeline.prompts import EXTRACTION_SYSTEM_PROMPT, EXTRACTION_USER_PROMPT_TEMPLATE
 
 
 def extract_clinical_info(transcript: str, model: str = "70b") -> dict:
