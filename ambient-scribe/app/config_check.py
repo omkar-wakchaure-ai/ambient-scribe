@@ -18,7 +18,10 @@ It NEVER prints the actual API key.
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+_APP_DIR = Path(__file__).resolve().parent
+_PROJECT_ROOT = _APP_DIR.parent
+sys.path.insert(0, str(_APP_DIR))
+sys.path.insert(0, str(_PROJECT_ROOT))
 
 
 def main() -> int:

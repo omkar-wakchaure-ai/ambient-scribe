@@ -182,7 +182,13 @@ def _call_groq(system_prompt: str, user_prompt: str, model_alias: str,
     client = Groq(api_key=api_key)
     model = _resolve_groq_model(client, model_alias)
 
-    kwargs = {}
+    # Free-tier keys reject requests whose max_tokens exceeds the
+    # per-minute output budget (e.g. 1000 OTPM). Cap the completion so the
+    # clinical pipeline works on budget tiers; raise via GROQ_MAX_TOKENS if
+    # the key's tier supports larger outputs.
+    max_tokens = int(os.environ.get("GROQ_MAX_TOKENS", "1000"))
+
+    kwargs = {"max_tokens": max_tokens}
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
 

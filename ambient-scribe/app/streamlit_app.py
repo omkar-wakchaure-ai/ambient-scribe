@@ -18,15 +18,39 @@ import time
 import requests
 import streamlit as st
 
-API_URL = os.environ.get("AMBIENT_API_URL", "http://localhost:8000").rstrip("/")
+_DEFAULT_PORTS = (8000, 8001, 8501)
 
 
-def api_health() -> bool:
+def api_health(base_url: str) -> bool:
     try:
-        r = requests.get(f"{API_URL}/status", timeout=5)
+        r = requests.get(f"{base_url}/status", timeout=5)
         return r.ok
     except requests.RequestException:
         return False
+
+
+def find_api_url() -> str:
+    """Return the reachable API base URL.
+
+    Uses an explicit ``AMBIENT_API_URL`` if set; otherwise probes the
+    common local ports so the dashboard works regardless of whether the
+    API was started on 8000 or 8001.
+    """
+    manual = os.environ.get("AMBIENT_API_URL")
+    if manual:
+        base = manual.rstrip("/")
+        if api_health(base):
+            return base
+        return base  # let the caller surface the health error
+
+    for port in _DEFAULT_PORTS:
+        base = f"http://localhost:{port}"
+        if api_health(base):
+            return base
+    return f"http://localhost:{_DEFAULT_PORTS[0]}"
+
+
+API_URL = find_api_url()
 
 
 def poll_job(job_id: str, progress_bar):
@@ -97,10 +121,11 @@ def main():
     st.title("Ambient Scribe")
     st.caption("Consultation transcription, diarization and clinical intelligence")
 
-    if not api_health():
+    if not api_health(API_URL):
         st.error(
             f"API not reachable at {API_URL}. Start it with "
-            "`uvicorn app.main:app --reload` and try again."
+            "`uvicorn app.main:app --reload` (ports 8000 or 8001 are "
+            "auto-detected) and try again."
         )
         return
 
