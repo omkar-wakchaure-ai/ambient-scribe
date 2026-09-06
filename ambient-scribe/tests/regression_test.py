@@ -190,6 +190,8 @@ class TestPersonCApi(unittest.TestCase):
         self.assertEqual(r.status_code, 404)
 
     def test_transcript_endpoint_missing_key_failure_is_clear(self):
+        if os.environ.get("GROQ_API_KEY"):
+            self.skipTest("GROQ_API_KEY configured; the loud-failure path cannot be exercised")
         r = self.client.post("/transcript", json={"transcript": "patient has fever"})
         body = r.json()
         # With no configured backend the endpoint must fail loudly, not
@@ -216,8 +218,92 @@ class TestPersonCApi(unittest.TestCase):
 
 
 # ----------------------------------------------------------------------
-# A -> B data contract
+# React frontend -> API contract
 # ----------------------------------------------------------------------
+
+RESULT_FIXTURE = {
+    "transcript": [
+        {"speaker": "SPEAKER_00", "start": 0.0, "end": 2.0, "text": "bukhaar hai"},
+        {"speaker": "SPEAKER_01", "start": 2.0, "end": 4.0, "text": "koi dawai li?"},
+    ],
+    "extraction": EXTRACTION_FIXTURE,
+    "soap_note": SOAP_FIXTURE,
+    "actions": ACTIONS_FIXTURE,
+}
+
+
+def _make_completed_job():
+    from app.jobs.job_manager import job_manager
+
+    job_id, _ = job_manager.create_job()
+    job_manager.update(
+        job_id, status="completed", progress=100, step="Complete", result=RESULT_FIXTURE
+    )
+    return job_id
+
+
+class TestReactContract(unittest.TestCase):
+    def setUp(self):
+        from fastapi.testclient import TestClient
+        from app.main import app
+
+        self.client = TestClient(app)
+
+    def test_unknown_job_404_on_all_react_routes(self):
+        for path in (
+            "/consultations/does-not-exist",
+            "/transcript/does-not-exist",
+            "/soap-note/does-not-exist",
+            "/action-summary/does-not-exist",
+        ):
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 404, path)
+
+    def test_partial_routes_409_until_completed(self):
+        from app.jobs.job_manager import job_manager
+
+        job_id, _ = job_manager.create_job()  # stays queued
+        r = self.client.get(f"/consultations/{job_id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["status"], "queued")
+
+        for path in (
+            f"/transcript/{job_id}",
+            f"/soap-note/{job_id}",
+            f"/action-summary/{job_id}",
+        ):
+            r = self.client.get(path)
+            self.assertEqual(r.status_code, 409, path)
+            self.assertIn("queued", str(r.json()["detail"]))
+
+    def test_completed_job_exposes_all_results(self):
+        job_id = _make_completed_job()
+
+        r = self.client.get(f"/consultations/{job_id}")
+        self.assertEqual(r.status_code, 200)
+        body = r.json()
+        self.assertEqual(body["status"], "completed")
+        self.assertEqual(len(body["result"]["transcript"]), 2)
+        self.assertEqual(body["result"]["soap_note"], SOAP_FIXTURE)
+
+        r = self.client.get(f"/transcript/{job_id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["segments"][0]["speaker"], "SPEAKER_00")
+
+        r = self.client.get(f"/soap-note/{job_id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.json()["soap_note"], SOAP_FIXTURE)
+
+        r = self.client.get(f"/action-summary/{job_id}")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn(
+            "Paracetamol 650mg TDS for 2 days", r.json()["actions"]["medication_actions"]
+        )
+
+    def test_cors_headers_present(self):
+        r = self.client.get("/status", headers={"Origin": "http://localhost:5173"})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.headers.get("access-control-allow-origin"), "http://localhost:5173")
 
 class TestAContract(unittest.TestCase):
     def test_transcript_to_text(self):
