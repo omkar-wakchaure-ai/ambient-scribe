@@ -1,16 +1,11 @@
-# Logs, caches, model artifacts (Person A)
-*.log
-__pycache__/
-*.py[cod]
-sample_data/
-
-# Environment / secrets - never commit real API keys (Person B)
+# Environment / secrets — never commit real API keys
 .env
-.env.local
-.env.*
+*.env
 !.env.example
 
-# Virtual environments
+# Python
+__pycache__/
+*.py[cod]
 venv/
 .venv/
 
