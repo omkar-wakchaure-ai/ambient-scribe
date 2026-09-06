@@ -7,10 +7,12 @@ Run from the project root:
 
 import os
 import sys
+from pathlib import Path
 
 import av
 import numpy as np
 import torch
+from dotenv import load_dotenv
 from pyannote.audio import Pipeline
 
 AUDIO_FILE = os.path.join(
@@ -56,9 +58,29 @@ def main():
 
     print("Loading diarization model...")
 
-    pipeline = Pipeline.from_pretrained(
-        "pyannote/speaker-diarization-3.1"
+    project_root = Path(__file__).resolve().parents[2]
+    load_dotenv(project_root / ".env", override=False)
+    token = (
+        os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGINGFACE_TOKEN")
+        or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
     )
+    if not token:
+        print(
+            "ERROR: Set HF_TOKEN or HUGGINGFACE_TOKEN in the project-root .env file."
+        )
+        return 1
+
+    try:
+        pipeline = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1", token=token
+        )
+    except TypeError as error:
+        if "token" not in str(error):
+            raise
+        pipeline = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1", use_auth_token=token
+        )
 
     print("Loading audio...")
 

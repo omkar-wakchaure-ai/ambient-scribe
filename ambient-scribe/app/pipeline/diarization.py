@@ -6,10 +6,12 @@ while some 3.x releases return a bare ``Annotation`` directly.
 """
 
 import os
+from pathlib import Path
 
 import av
 import numpy as np
 import torch
+from dotenv import load_dotenv
 from pyannote.audio import Pipeline
 
 RESAMPLE_RATE = 16000
@@ -18,6 +20,29 @@ _PIPELINE = None
 _PIPELINE_NAME = os.environ.get(
     "DIARIZATION_MODEL", "pyannote/speaker-diarization-3.1"
 )
+
+
+def _load_project_env():
+    """Load the project-root .env without overriding shell environment values."""
+    project_root = Path(__file__).resolve().parents[2]
+    load_dotenv(project_root / ".env", override=False)
+
+
+def _get_huggingface_token():
+    """Return the configured Hugging Face token or explain how to configure it."""
+    _load_project_env()
+    token = (
+        os.environ.get("HF_TOKEN")
+        or os.environ.get("HUGGINGFACE_TOKEN")
+        or os.environ.get("HUGGINGFACEHUB_API_TOKEN")
+    )
+    if not token:
+        raise RuntimeError(
+            "Hugging Face authentication is required for the diarization model. "
+            "Set HF_TOKEN or HUGGINGFACE_TOKEN in the project-root .env file, "
+            "then restart the FastAPI server."
+        )
+    return token
 
 
 def load_audio(path, sample_rate=RESAMPLE_RATE):
@@ -66,7 +91,16 @@ def get_pipeline():
     global _PIPELINE
     if _PIPELINE is None:
         print("Loading diarization model...")
-        _PIPELINE = Pipeline.from_pretrained(_PIPELINE_NAME)
+        token = _get_huggingface_token()
+        try:
+            _PIPELINE = Pipeline.from_pretrained(_PIPELINE_NAME, token=token)
+        except TypeError as error:
+            # pyannote.audio 3.x used the older Hugging Face keyword.
+            if "token" not in str(error):
+                raise
+            _PIPELINE = Pipeline.from_pretrained(
+                _PIPELINE_NAME, use_auth_token=token
+            )
     return _PIPELINE
 
 
