@@ -50,6 +50,10 @@ class ExtractionResult(BaseModel):
     medications: List[Medication] = Field(default_factory=list)
     history: History = Field(default_factory=History)
     investigations: List[Investigation] = Field(default_factory=list)
+    objective_findings: List[str] = Field(
+        default_factory=list,
+        description="explicitly stated vitals/measurements, e.g. 'Temperature approximately 101°F'; empty if none were stated",
+    )
     assessment: str = ""
     plan: List[str] = Field(default_factory=list)
     extraction_confidence: str = Field(default="low", description="high | medium | low")
