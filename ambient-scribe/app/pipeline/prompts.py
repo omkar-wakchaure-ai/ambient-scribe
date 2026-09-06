@@ -30,6 +30,14 @@ LANGUAGE HANDLING RULES:
   gloss in parentheses, rather than silently dropping it.
 - Normalize durations/units into a consistent, readable format
   (e.g., "3 din se" -> "3 days").
+- Normalize explicitly stated measurements conservatively.
+- Example: "101 degree" may be represented as "approximately 101°F" only
+  when the clinical context clearly indicates that it refers to body
+  temperature.
+- Record only what was explicitly stated.
+- Do not round, infer, or invent measurements.
+- If the unit is genuinely ambiguous, preserve the ambiguity rather than
+  confidently assigning a unit.
 - If speaker labels are missing or inconsistent, infer doctor vs.
   patient from context (question-asking vs. symptom-reporting turns).
 
@@ -94,6 +102,7 @@ OUTPUT RULES:
       "result": "string or null - if a result was actually mentioned"
     }
   ],
+  "objective_findings": ["string - explicitly stated vitals/measurements only, e.g. 'Temperature approximately 101°F'; keep empty if none were stated"],
   "assessment": "string - the doctor's stated diagnosis/impression ONLY if the doctor explicitly stated or clearly concluded it; otherwise leave empty. Do NOT invent a diagnosis.",
   "plan": [
     "string - each distinct plan item as its own list entry (meds, tests, referrals, lifestyle advice, follow-up)"
@@ -122,6 +131,16 @@ Investigation semantics:
 - results_reviewed  = the result was actually stated/reviewed -> fill in result.
 - RULE: If a test is ordered but no result was mentioned, do NOT invent a
   result — keep result null and status accurate.
+
+Objective finding rules:
+- objective_findings captures ONLY measurements/vitals that were
+  explicitly stated in the consultation (e.g., temperature, blood
+  pressure, pulse). Never infer, estimate, or round a measurement from
+  symptoms or context.
+- Keep the list empty if no measurement was stated. Do not write "normal"
+  or "afebrile" unless the doctor explicitly said it.
+- Example: "Patient: around 101 degree." ->
+  objective_findings: ["Temperature approximately 101°F"]
 
 Assessment wording rules:
 - If the doctor states a diagnosis/impression explicitly, capture it in
@@ -190,10 +209,12 @@ RULES:
   way a clinician documents it (e.g. "Patient reports a 3-day history of
   fever with associated headache..."). Only include facts present in the
   JSON.
-- Objective: any investigations/results explicitly present in the JSON
-  (state "No objective findings documented in this consultation." if the
-  investigations list is empty and no exam findings were captured —
-  never invent vitals or exam findings).
+- Objective: any explicitly stated measurements from "objective_findings"
+  (e.g. "Temperature approximately 101°F") and any investigations/results
+  explicitly present in the JSON. State "No objective findings documented
+  in this consultation." if objective_findings is empty AND no
+  investigation results were captured — never invent vitals or exam
+  findings.
 - Assessment: present ONLY what is in the assessment field. If the
   assessment is empty/blank, write "Assessment pending further
   evaluation." Do NOT infer, guess, or add a diagnosis that is not in
@@ -268,10 +289,21 @@ OUTPUT RULES:
   say "start/continue giving X" because of it).
 - A medication with status "discontinued" should NOT be turned into a
   treatment action unless the doctor explicitly prescribed a replacement.
+- A medication with status "newly_prescribed" (or explicitly recommended
+  by the doctor) becomes a medication action phrased close to the doctor's
+  own instruction (e.g. "Take Paracetamol as needed" when the doctor said
+  "Paracetamol zarurat ke according lena"). Never invent a dose or
+  frequency that was not stated.
 - An investigation that was ordered but has no documented result yields a
   "send/order/execute" action only, never an interpretation of the result.
   Do not add a result status (e.g. "normal", "pending") that is not in
   the JSON.
+- Capture follow_up ONLY if the doctor explicitly scheduled one; put the
+  stated timeframe verbatim (e.g. "3 days"). If none was stated, use
+  "required": false with null timeframe and reason.
+- Explicit home-care advice the doctor gave (e.g. "Drink plenty of water"
+  from "Paani zyada piyo") belongs in patient_instructions; do not add any
+  advice the doctor did not give.
 - Only create treatment recommendations that the doctor actually
   prescribed or that the plan explicitly contains.
 - If a category has nothing to report, return an empty list (or
