@@ -1,0 +1,16 @@
+# Audio pipeline (Person A)
+faster-whisper
+pyannote.audio
+torch
+torchaudio
+av
+
+# Clinical intelligence (Person B)
+groq>=0.11.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# API + frontend (Person C)
+fastapi
+uvicorn[standard]
+python-multipart

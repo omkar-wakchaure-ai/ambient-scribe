@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CalendarPlus, FileText, LogOut } from 'lucide-react';
+import { CalendarPlus, FileText, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'; // Import the auth context
+import DocumentViewer from '../../components/doctor/DocumentViewer';
 
 // Ensure your image path is correct
 import glassHeartImg from '../../assets/glass-heart.png';
@@ -10,6 +11,7 @@ export default function PatientDashboard() {
   const navigate = useNavigate();
   const { logout } = useAuth(); // Get the logout function
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for the dropdown
+  const [showDocuments, setShowDocuments] = useState(false); // State for the documents modal
 
   const handleLogout = () => {
     logout();
@@ -130,6 +132,7 @@ export default function PatientDashboard() {
               </div>
               
               <button 
+                onClick={() => setShowDocuments(true)}
                 className="relative z-10 w-full py-4 bg-white/60 backdrop-blur-sm border border-[#E5E7EB] text-[#172033] font-semibold text-sm rounded-2xl hover:bg-white hover:border-[#D1D5DB] hover:shadow-sm transition-all duration-300"
               >
                 View Records
@@ -164,6 +167,33 @@ export default function PatientDashboard() {
           .animate-shimmer { animation: shimmer 1.5s infinite; }
         }
       `}} />
+
+      {/* ========================================= */}
+      {/* DOCUMENTS MODAL                           */}
+      {/* ========================================= */}
+      {showDocuments && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div className="absolute inset-0 bg-[#172033]/40 backdrop-blur-sm" onClick={() => setShowDocuments(false)}></div>
+          <div className="relative z-10 w-full max-w-lg bg-white/95 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_20px_60px_rgba(0,0,0,0.15)] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-[#E5E7EB]/50">
+              <h3 className="text-lg font-extrabold text-[#172033] tracking-tight">My Records</h3>
+              <button
+                onClick={() => setShowDocuments(false)}
+                className="p-2 text-[#64748B] hover:text-[#4F46E5] hover:bg-[#EEF2FF] rounded-xl transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <DocumentViewer
+              documents={[
+                { id: 1, name: 'Blood_Test_Results_2023.pdf', date: 'Oct 12', type: 'Lab Report' },
+                { id: 2, name: 'Previous_Prescription.jpg', date: 'Sep 05', type: 'Prescription' },
+                { id: 3, name: 'Chest_XRay_2023.png', date: 'Aug 28', type: 'Imaging' },
+              ]}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

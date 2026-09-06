@@ -1,8 +1,15 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, ArrowRight } from 'lucide-react';
-import Button from '../common/Button';
 
 export default function AppointmentCard({ patientName, time, condition, isNext }) {
+  const navigate = useNavigate();
+
+  const handleStartScribe = (e) => {
+    e.stopPropagation();
+    navigate('/doctor/consultation');
+  };
+
   return (
     <div className={`relative h-full p-6 rounded-[2rem] backdrop-blur-xl border transition-all duration-500 overflow-hidden group ${
       isNext 
@@ -39,7 +46,7 @@ export default function AppointmentCard({ patientName, time, condition, isNext }
         }`}>
           {isNext ? 'Next up' : 'Scheduled'}
         </span>
-        <button className={`flex items-center py-2 px-5 text-sm font-semibold rounded-xl transition-all duration-300 ${
+        <button onClick={handleStartScribe} className={`flex items-center py-2 px-5 text-sm font-semibold rounded-xl transition-all duration-300 ${
           isNext 
             ? 'bg-[#4F46E5] text-white shadow-[0_4px_14px_0_rgba(79,70,229,0.39)] hover:shadow-[0_6px_20px_rgba(79,70,229,0.23)] hover:-translate-y-0.5' 
             : 'bg-white text-[#172033] border border-[#E5E7EB] hover:bg-[#F8FAFC] hover:border-[#D1D5DB]'

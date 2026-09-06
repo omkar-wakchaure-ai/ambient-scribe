@@ -1,51 +1,45 @@
 import { useState } from 'react';
+import {
+  createConsultation,
+  fetchTranscript,
+  formatError,
+} from '../services/consultationApi';
 
-// Wrapper for your FastAPI endpoints
+// Wrapper around the centralized FastAPI-backed services.
+// Kept for compatibility; the LiveConsultation page uses
+// services/consultationApi directly.
 export default function useApi() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  
-  const BASE_URL = 'http://localhost:8000'; // Replace with Person C's API URL
 
-  const postAudio = async (audioBlob, language) => {
+  const postAudio = async (file) => {
     setIsLoading(true);
     setError(null);
     try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'consultation.wav');
-      formData.append('language', language);
-
-      const response = await fetch(`${BASE_URL}/transcript`, {
-        method: 'POST',
-        body: formData,
-      });
-      
-      if (!response.ok) throw new Error('Failed to process audio');
-      return await response.json(); // Returns Transcript JSON
+      const uploaded = await createConsultation(file);
+      return uploaded;
     } catch (err) {
-      setError(err.message);
+      const friendly = formatError(err);
+      setError(friendly);
+      console.error('Upload failed:', err);
       return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const generateClinicalNote = async (transcriptJson) => {
+  const getTranscript = async (jobId) => {
     setIsLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`${BASE_URL}/consultations`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(transcriptJson),
-      });
-      return await response.json(); // Returns Extracted Data, SOAP, Actions
+      return await fetchTranscript(jobId);
     } catch (err) {
-      setError(err.message);
+      setError(formatError(err));
       return null;
     } finally {
       setIsLoading(false);
     }
   };
 
-  return { isLoading, error, postAudio, generateClinicalNote };
+  return { isLoading, error, postAudio, getTranscript };
 }

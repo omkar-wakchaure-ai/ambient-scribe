@@ -1,10 +1,12 @@
 import { useState, useRef } from 'react';
 
-export default function useAudioRecorder() {
+export default function useAudioRecorder({ onStop } = {}) {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const onStopRef = useRef(onStop);
+  onStopRef.current = onStop;
 
   const startRecording = async () => {
     try {
@@ -17,16 +19,16 @@ export default function useAudioRecorder() {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         setAudioBlob(blob);
-        // Stop all tracks to turn off the microphone light
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
+        if (onStopRef.current) onStopRef.current(blob);
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
     } catch (error) {
-      console.error("Microphone access denied or error occurred.", error);
+      console.error('Microphone access denied or error occurred.', error);
     }
   };
 

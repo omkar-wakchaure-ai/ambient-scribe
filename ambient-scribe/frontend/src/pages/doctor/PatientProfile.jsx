@@ -1,12 +1,51 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, PlayCircle } from 'lucide-react';
+import { ArrowLeft, PlayCircle, PauseCircle, Info } from 'lucide-react';
 import Button from '../../components/common/Button';
 import DocumentViewer from '../../components/doctor/DocumentViewer';
 import HistoryTimeline from '../../components/doctor/HistoryTimeline';
 
+const PREVISIT_NOTE_KEY = 'previsit_note_dataurl';
+
 export default function PatientProfile() {
   const navigate = useNavigate();
+  const [notePlaying, setNotePlaying] = useState(false);
+  const [noteUrl, setNoteUrl] = useState(null);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(PREVISIT_NOTE_KEY);
+    if (stored) {
+      setNoteUrl(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
+  }, []);
+
+  const handlePlayNote = () => {
+    if (!noteUrl) return;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio(noteUrl);
+      audioRef.current.onended = () => setNotePlaying(false);
+    }
+
+    if (notePlaying) {
+      audioRef.current.pause();
+      setNotePlaying(false);
+    } else {
+      audioRef.current.src = noteUrl;
+      audioRef.current.play().catch(() => setNotePlaying(false));
+      setNotePlaying(true);
+    }
+  };
 
   return (
     <div className="relative min-h-screen bg-[#FAFAFA] overflow-hidden flex flex-col pb-20">
@@ -63,9 +102,28 @@ export default function PatientProfile() {
             {/* Pre-visit Voice Note Card */}
             <div className="bg-[#F5F9FF]/80 backdrop-blur-md p-6 rounded-[2rem] border border-[#E0F2FE] shadow-[0_8px_30px_rgba(0,0,0,0.03)] hover:shadow-md transition-shadow">
               <h3 className="text-sm font-bold text-[#172033] mb-4 tracking-tight">Pre-visit Voice Note</h3>
-              <button className="w-full flex items-center justify-center p-3.5 bg-white/90 backdrop-blur-sm rounded-xl border border-white shadow-sm text-sm font-bold text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white hover:shadow-[0_8px_20px_rgba(79,70,229,0.2)] hover:-translate-y-0.5 transition-all duration-300 group">
-                <PlayCircle className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" /> Play Patient Note
+              <button
+                onClick={handlePlayNote}
+                disabled={!noteUrl}
+                className={`w-full flex items-center justify-center p-3.5 bg-white/90 backdrop-blur-sm rounded-xl border border-white shadow-sm text-sm font-bold transition-all duration-300 group ${
+                  noteUrl
+                    ? 'text-[#4F46E5] hover:bg-[#4F46E5] hover:text-white hover:shadow-[0_8px_20px_rgba(79,70,229,0.2)] hover:-translate-y-0.5'
+                    : 'text-[#94A3B8] cursor-not-allowed'
+                }`}
+              >
+                {notePlaying ? (
+                  <PauseCircle className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                ) : (
+                  <PlayCircle className="w-5 h-5 mr-2 group-hover:scale-110 transition-transform" />
+                )}
+                {!noteUrl ? 'No Pre-visit Note Recorded' : notePlaying ? 'Pause Note' : 'Play Patient Note'}
               </button>
+              {!noteUrl && (
+                <p className="flex items-center justify-center text-[11px] font-medium text-[#64748B] mt-3">
+                  <Info className="w-3.5 h-3.5 mr-1.5" />
+                  Recorded on the patient's booking screen (demo, stored locally).
+                </p>
+              )}
             </div>
 
             <DocumentViewer />
