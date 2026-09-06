@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useConsultation } from '../../context/ConsultationStateContext';
 import useAudioRecorder from '../../hooks/useAudioRecorder';
 import Button from '../../components/common/Button';
@@ -20,7 +20,7 @@ import {
   fetchActionSummary,
   formatError,
 } from '../../services/consultationApi';
-import { Server, ServerOff, FileText, Save, CheckCircle, Activity, List, FileClock, XCircle } from 'lucide-react';
+import { Server, ServerOff, FileText, CheckCircle, Activity, List, FileClock, XCircle } from 'lucide-react';
 
 const PROCESSING_STEPS = [
   'Uploading audio',
@@ -35,6 +35,9 @@ const PROCESSING_STEPS = [
 
 export default function LiveConsultation() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const currentPatient = location.state?.patient ?? null;
+  const activePatientName = currentPatient?.patientName || 'Aarav Patel';
   const {
     status,
     setStatus,
@@ -159,6 +162,29 @@ export default function LiveConsultation() {
     }
   };
 
+  const handleEndVisit = () => {
+    let appts = [];
+    try {
+      appts = JSON.parse(localStorage.getItem('demo_appointments') || '[]');
+    } catch (error) {
+      appts = [];
+    }
+
+    let currentId = currentPatient?.id;
+    if (currentId === undefined && Array.isArray(appts) && appts.length > 0) {
+      currentId = appts[0].id;
+    }
+
+    const remaining = (Array.isArray(appts) ? appts : []).filter((a) => a.id !== currentId);
+    localStorage.setItem('demo_appointments', JSON.stringify(remaining));
+
+    const completed = parseInt(localStorage.getItem('completed_notes_count') || '8', 10);
+    localStorage.setItem('completed_notes_count', String(Number.isFinite(completed) ? completed + 1 : 9));
+    window.dispatchEvent(new Event('consultationCompleted'));
+
+    navigate('/doctor/dashboard');
+  };
+
   const renderContent = () => {
     if (status === 'uploading' || status === 'processing') {
       const stepIndex = PROCESSING_STEPS.indexOf(progress.step);
@@ -281,7 +307,7 @@ export default function LiveConsultation() {
         <div>
           <h1 className="text-xl font-bold text-[#172033] flex items-center">
             <span className="w-3 h-3 rounded-full bg-[#16A34A] mr-3 animate-pulse"></span>
-            Active Consultation: Aarav Patel
+            Active Consultation: {activePatientName}
           </h1>
           <button
             onClick={handleBackendCheck}
@@ -296,7 +322,7 @@ export default function LiveConsultation() {
                 </>
               ) : (
                 <>
-                  <ServerOff className="w-3.5 h-3.5 mr-1" /> Backend unreachable — is uvicorn running on :8001? (click to retry)
+                  <ServerOff className="w-3.5 h-3.5 mr-1" /> Backend unreachable — is uvicorn running on :8000? (click to retry)
                 </>
               )
             ) : (
@@ -311,24 +337,14 @@ export default function LiveConsultation() {
           {status === 'review' && (
             <Button
               variant="primary"
-              icon={Save}
-              onClick={() => {
-                setStatus('saved');
-                setTimeout(() => navigate('/doctor/dashboard'), 1500);
-              }}
+              icon={CheckCircle}
+              onClick={handleEndVisit}
             >
-              Save to EHR
+              End Visit
             </Button>
           )}
         </div>
       </header>
-
-      {status === 'saved' && (
-        <div className="mb-6 p-4 bg-[#DCFCE7] border border-[#16A34A] text-[#16A34A] rounded-xl flex items-center font-medium">
-          <CheckCircle className="w-5 h-5 mr-2" />
-          Successfully saved to Electronic Health Record. Redirecting...
-        </div>
-      )}
 
       {status === 'error' && jobId && (
         <div className="mb-6 p-4 bg-[#FEF2F2] border border-[#FECACA] text-[#DC2626] rounded-xl flex items-center font-medium">

@@ -1,16 +1,36 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  // Mock auth state: null, 'doctor', or 'patient'
-  const [userRole, setUserRole] = useState(null); 
+  const [user, setUser] = useState(null);
 
-  const login = (role) => setUserRole(role);
-  const logout = () => setUserRole(null);
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.removeItem('user');
+      }
+    }
+  }, []);
+
+  const login = (email, role, name) => {
+    const defaultName = role === 'doctor' ? 'Dr. Smith' : 'Aarav Patel';
+    const userData = { email, role, name: name || defaultName };
+
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
+  };
 
   return (
-    <AuthContext.Provider value={{ userRole, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

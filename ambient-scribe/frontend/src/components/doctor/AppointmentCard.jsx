@@ -2,12 +2,12 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, ArrowRight } from 'lucide-react';
 
-export default function AppointmentCard({ patientName, time, condition, isNext }) {
+export default function AppointmentCard({ patientName, time, condition, isNext, patient }) {
   const navigate = useNavigate();
 
   const handleStartScribe = (e) => {
     e.stopPropagation();
-    navigate('/doctor/consultation');
+    navigate('/doctor/consultation', { state: { patient: patient || { patientName, time, condition, isNext } } });
   };
 
   return (

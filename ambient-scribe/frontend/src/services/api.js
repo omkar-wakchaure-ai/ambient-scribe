@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 // Centralized axios instance for the FastAPI backend.
 // Override the base URL at build/dev time with:
-//   VITE_API_BASE_URL=http://127.0.0.1:8001
+//   VITE_API_BASE_URL=http://127.0.0.1:8000
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -26,7 +26,7 @@ export const getErrorMessage = (err) => {
       if (err.code === 'ECONNABORTED') {
         return 'Request timed out. Please try again.';
       }
-      return 'Backend is offline. Make sure the FastAPI server is running on port 8001.';
+      return 'Backend is offline. Make sure the FastAPI server is running on port 8000.';
     }
     const { status, data } = err.response;
     const detail = data && data.detail ? data.detail : '';

@@ -1,9 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { UploadCloud, File, X, CheckCircle2 } from 'lucide-react';
 
-export default function DocumentUploader() {
+export default function DocumentUploader({ onFilesChange }) {
   const inputRef = useRef(null);
   const [files, setFiles] = useState([]);
+
+  const updateFiles = (next) => {
+    setFiles(next);
+    if (onFilesChange) onFilesChange(next);
+  };
 
   const handlePick = () => {
     inputRef.current?.click();
@@ -12,13 +17,13 @@ export default function DocumentUploader() {
   const handleChange = (e) => {
     const selected = Array.from(e.target.files || []);
     if (selected.length > 0) {
-      setFiles((prev) => [...prev, ...selected]);
+      updateFiles([...files, ...selected]);
     }
     e.target.value = '';
   };
 
   const removeFile = (index) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+    updateFiles(files.filter((_, i) => i !== index));
   };
 
   return (

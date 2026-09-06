@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Activity, Clock, Users, FileText, LogOut } from 'lucide-react';
 import AppointmentCard from '../../components/doctor/AppointmentCard';
@@ -9,8 +9,62 @@ import glassStethoscopeImg from '../../assets/glass-stethoscope.png';
 
 export default function DoctorDashboard() {
   const navigate = useNavigate();
-  const { logout } = useAuth(); // Get the logout function
+  const { user, logout } = useAuth(); // Get the logout function
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for the dropdown
+
+  const readAppointments = () => {
+    const defaultAppts = [
+      { id: 1, patientName: "Aarav Patel", time: "10:00 AM", condition: "Viral Fever (Follow-up)", isNext: true },
+      { id: 2, patientName: "Priya Sharma", time: "10:30 AM", condition: "Routine Checkup", isNext: false }
+    ];
+
+    const storedAppointments = localStorage.getItem('demo_appointments');
+    let localAppts = [];
+    try {
+      localAppts = JSON.parse(storedAppointments || '[]');
+    } catch (error) {
+      localAppts = [];
+    }
+
+    if (storedAppointments === null || !Array.isArray(localAppts)) {
+      localStorage.setItem('demo_appointments', JSON.stringify(defaultAppts));
+      return defaultAppts;
+    }
+    return localAppts;
+  };
+
+  const readCompletedCount = () => {
+    const storedCount = parseInt(localStorage.getItem('completed_notes_count') || '8', 10);
+    return Number.isFinite(storedCount) && storedCount >= 8 ? storedCount : 8;
+  };
+
+  const [appointments, setAppointments] = useState(readAppointments);
+  const [completedCount, setCompletedCount] = useState(readCompletedCount);
+
+  useEffect(() => {
+    const refreshDashboard = () => {
+      setAppointments(readAppointments());
+      setCompletedCount(readCompletedCount());
+    };
+
+    window.addEventListener('storage', refreshDashboard);
+    window.addEventListener('consultationCompleted', refreshDashboard);
+    window.addEventListener('pageshow', refreshDashboard);
+    return () => {
+      window.removeEventListener('storage', refreshDashboard);
+      window.removeEventListener('consultationCompleted', refreshDashboard);
+      window.removeEventListener('pageshow', refreshDashboard);
+    };
+  }, []);
+
+  const pendingReviewsCount = 4;
+  const totalTodayPatients = appointments.length;
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.replace('Dr. ', '').trim().split(' ');
+    return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+  };
 
   const handleLogout = () => {
     logout();
@@ -50,7 +104,7 @@ export default function DoctorDashboard() {
         
         <header className="flex justify-between items-end mb-8 relative">
           <div>
-            <h1 className="text-3xl font-extrabold text-[#172033] tracking-tight">Welcome back, Dr. Smith</h1>
+            <h1 className="text-3xl font-extrabold text-[#172033] tracking-tight">Welcome back, {user?.name?.startsWith('Dr.') ? user.name : `Dr. ${user?.name}`}</h1>
             <p className="text-[#64748B] text-sm mt-1 font-medium">Here is your schedule for today.</p>
           </div>
           
@@ -60,7 +114,7 @@ export default function DoctorDashboard() {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="w-12 h-12 bg-white/95 backdrop-blur-md text-[#4F46E5] font-bold rounded-full flex items-center justify-center border-2 border-[#E0F2FE] shadow-[0_4px_15px_rgba(224,242,254,0.8)] ring-1 ring-white hover:ring-[#E0F2FE] hover:shadow-[0_8px_25px_rgba(79,70,229,0.25)] transition-all duration-300 cursor-pointer z-20 relative"
             >
-              DS
+              {getInitials(user?.name)}
             </button>
 
             {/* Glassy Dropdown Menu */}
@@ -83,38 +137,53 @@ export default function DoctorDashboard() {
           </div>
         </header>
 
-        {/* Stats Row with Stronger White Backgrounds (bg-white/95) */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {[
-            { title: "Today's Patients", value: "12", icon: Users, color: "text-[#3B82F6]", bg: "bg-[#F5F9FF]" },
-            { title: "Completed Notes", value: "8", icon: FileText, color: "text-[#16A34A]", bg: "bg-[#DCFCE7]" },
-            { title: "Pending Reviews", value: "4", icon: Activity, color: "text-[#D97706]", bg: "bg-[#FEF3C7]" },
-            { title: "Time Saved", value: "2.4 hrs", icon: Clock, color: "text-[#4F46E5]", bg: "bg-[#EEF2FF]" },
-          ].map((stat, idx) => (
-            <div key={idx} className="relative bg-white/95 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-[0_8px_30px_rgb(0,0,0,0.03)] hover:shadow-[0_15px_40px_rgba(79,70,229,0.08)] hover:-translate-y-1 transition-all duration-300 group overflow-hidden">
-              
-              {/* Glossy Sheen overlay on hover */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/80 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none transform -translate-x-full group-hover:translate-x-full"></div>
-              
-              <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4 border border-white shadow-sm`}>
-                <stat.icon className="w-5 h-5" />
-              </div>
-              <p className="text-sm text-[#64748B] font-medium">{stat.title}</p>
-              <p className="text-3xl font-extrabold text-[#172033] mt-1 tracking-tight">{stat.value}</p>
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 relative z-10">
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-[0_15px_35px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_45px_rgba(79,70,229,0.1)] hover:-translate-y-1 transition-all duration-300">
+            <div className="w-12 h-12 bg-[#EEF2FF] text-[#4F46E5] rounded-2xl flex items-center justify-center mb-4">
+              <Users className="w-6 h-6" />
             </div>
-          ))}
+            <p className="text-[#64748B] text-sm font-bold tracking-wide uppercase">Today's Patients</p>
+            {/* Dynamic Total Patients */}
+            <h2 className="text-3xl font-black text-[#172033] mt-1">{totalTodayPatients}</h2>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-[0_15px_35px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_45px_rgba(16,185,129,0.1)] hover:-translate-y-1 transition-all duration-300">
+            <div className="w-12 h-12 bg-[#ECFDF5] text-[#10B981] rounded-2xl flex items-center justify-center mb-4">
+              <FileText className="w-6 h-6" />
+            </div>
+            <p className="text-[#64748B] text-sm font-bold tracking-wide uppercase">Completed Notes</p>
+            {/* Dynamic Completed Notes */}
+            <h2 className="text-3xl font-black text-[#172033] mt-1">{completedCount}</h2>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-[0_15px_35px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_45px_rgba(245,158,11,0.1)] hover:-translate-y-1 transition-all duration-300">
+            <div className="w-12 h-12 bg-[#FFFBEB] text-[#F59E0B] rounded-2xl flex items-center justify-center mb-4">
+              <Activity className="w-6 h-6" />
+            </div>
+            <p className="text-[#64748B] text-sm font-bold tracking-wide uppercase">Pending Reviews</p>
+            {/* Pending Reviews */}
+            <h2 className="text-3xl font-black text-[#172033] mt-1">{pendingReviewsCount}</h2>
+          </div>
+
+          <div className="bg-white/80 backdrop-blur-xl p-6 rounded-3xl border border-white shadow-[0_15px_35px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_45px_rgba(99,102,241,0.1)] hover:-translate-y-1 transition-all duration-300">
+            <div className="w-12 h-12 bg-[#EEF2FF] text-[#6366F1] rounded-2xl flex items-center justify-center mb-4">
+              <Clock className="w-6 h-6" />
+            </div>
+            <p className="text-[#64748B] text-sm font-bold tracking-wide uppercase">Time Saved</p>
+            <h2 className="text-3xl font-black text-[#172033] mt-1">2.4 hrs</h2>
+          </div>
         </div>
 
         {/* Appointments */}
         <div className="mt-10">
           <h2 className="text-xl font-bold text-[#172033] mb-6">Upcoming Appointments</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div onClick={() => navigate('/doctor/patient/1')} className="cursor-pointer h-full">
-              <AppointmentCard patientName="Aarav Patel" time="10:00 AM" condition="Viral Fever (Follow-up)" isNext={true} />
-            </div>
-            <div onClick={() => navigate('/doctor/patient/2')} className="cursor-pointer h-full">
-              <AppointmentCard patientName="Priya Sharma" time="10:30 AM" condition="Routine Checkup" isNext={false} />
-            </div>
+            {appointments.map((appt) => (
+              <div key={appt.id} onClick={() => navigate(`/doctor/patient/${appt.id}`, { state: { patient: appt } })} className="cursor-pointer h-full">
+                <AppointmentCard patient={appt} patientName={appt.patientName} time={appt.time} condition={appt.condition} isNext={appt.isNext} />
+              </div>
+            ))}
           </div>
         </div>
       </div>

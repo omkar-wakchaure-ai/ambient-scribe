@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CalendarPlus, FileText, LogOut, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'; // Import the auth context
@@ -9,9 +9,39 @@ import glassHeartImg from '../../assets/glass-heart.png';
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
-  const { logout } = useAuth(); // Get the logout function
+  const { user, logout } = useAuth(); // Get the logout function
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State for the dropdown
   const [showDocuments, setShowDocuments] = useState(false); // State for the documents modal
+
+  const [documents, setDocuments] = useState([]);
+
+  const loadDocuments = () => {
+    let uploaded = [];
+    try {
+      uploaded = JSON.parse(localStorage.getItem('patient_uploaded_docs') || '[]');
+    } catch (error) {
+      uploaded = [];
+    }
+
+    const patientEmail = user?.email;
+    setDocuments(
+      (Array.isArray(uploaded) ? uploaded : []).filter((document) => document.patientEmail === patientEmail)
+    );
+  };
+
+  useEffect(() => {
+    loadDocuments();
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (showDocuments) loadDocuments();
+  }, [showDocuments]);
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+  };
 
   const handleLogout = () => {
     logout();
@@ -66,7 +96,7 @@ export default function PatientDashboard() {
                 className="relative overflow-hidden w-16 h-16 bg-white/70 backdrop-blur-md text-[#3B82F6] font-extrabold text-2xl rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(59,130,246,0.15)] ring-2 ring-white hover:ring-[#E0F2FE] hover:shadow-[0_12px_25px_rgba(59,130,246,0.25)] transition-all duration-300 z-20 cursor-pointer"
               >
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-5 bg-gradient-to-b from-white to-transparent opacity-90 rounded-full blur-[1px]"></div>
-                <span className="relative z-10">AP</span>
+                <span className="relative z-10">{getInitials(user?.name)}</span>
               </button>
 
               {/* Glassy Dropdown Menu */}
@@ -89,7 +119,7 @@ export default function PatientDashboard() {
             </div>
 
             <div>
-              <h1 className="text-3xl font-extrabold text-[#172033] tracking-tight">Hello, Aarav</h1>
+              <h1 className="text-3xl font-extrabold text-[#172033] tracking-tight">Hello, {user?.name?.split(' ')[0]}</h1>
               <p className="text-[#64748B] text-base font-medium mt-1">How are you feeling today?</p>
             </div>
           </header>
@@ -185,11 +215,7 @@ export default function PatientDashboard() {
               </button>
             </div>
             <DocumentViewer
-              documents={[
-                { id: 1, name: 'Blood_Test_Results_2023.pdf', date: 'Oct 12', type: 'Lab Report' },
-                { id: 2, name: 'Previous_Prescription.jpg', date: 'Sep 05', type: 'Prescription' },
-                { id: 3, name: 'Chest_XRay_2023.png', date: 'Aug 28', type: 'Imaging' },
-              ]}
+              documents={documents}
             />
           </div>
         </div>

@@ -11,11 +11,6 @@ export default function PreVisitAudioRecorder() {
   const audioRef = useRef(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem(PREVISIT_NOTE_KEY);
-    if (stored) setNoteUrl(stored);
-  }, []);
-
-  useEffect(() => {
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();

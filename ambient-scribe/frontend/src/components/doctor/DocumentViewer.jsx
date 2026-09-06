@@ -4,11 +4,6 @@ import { FileText, Download, Eye, X } from 'lucide-react';
 export default function DocumentViewer({ documents = [] }) {
   const [previewDoc, setPreviewDoc] = useState(null);
 
-  const docs = documents.length > 0 ? documents : [
-    { id: 1, name: 'Blood_Test_Results_2023.pdf', date: 'Oct 12', type: 'Lab Report' },
-    { id: 2, name: 'Previous_Prescription.jpg', date: 'Sep 05', type: 'Prescription' }
-  ];
-
   const handleDownload = (doc) => {
     const content = [
       `Ambient Scribe - Patient Document`,
@@ -45,7 +40,12 @@ export default function DocumentViewer({ documents = [] }) {
       
       {/* List */}
       <div className="p-3">
-        {docs.map(doc => (
+        {documents.length === 0 && (
+          <p className="px-4 py-8 text-center text-sm font-medium text-[#64748B]">
+            No documents uploaded yet.
+          </p>
+        )}
+        {documents.map(doc => (
           <div key={doc.id} className="flex items-center justify-between p-4 hover:bg-[#F5F9FF] rounded-2xl transition-all duration-300 group cursor-pointer border border-transparent hover:border-[#E0F2FE] hover:shadow-sm">
             <div
               className="flex items-center space-x-4 min-w-0"

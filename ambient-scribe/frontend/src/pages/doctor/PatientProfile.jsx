@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, PlayCircle, PauseCircle, Info } from 'lucide-react';
 import Button from '../../components/common/Button';
 import DocumentViewer from '../../components/doctor/DocumentViewer';
@@ -9,9 +9,18 @@ const PREVISIT_NOTE_KEY = 'previsit_note_dataurl';
 
 export default function PatientProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const patient = location.state?.patient ?? {};
+  const patientName = patient.patientName || 'Unknown Patient';
   const [notePlaying, setNotePlaying] = useState(false);
   const [noteUrl, setNoteUrl] = useState(null);
   const audioRef = useRef(null);
+
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.replace('Dr. ', '').trim().split(' ');
+    return parts.length > 1 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem(PREVISIT_NOTE_KEY);
@@ -83,15 +92,15 @@ export default function PatientProfile() {
                 {/* Glassy Avatar */}
                 <div className="relative overflow-hidden w-24 h-24 bg-gradient-to-br from-[#EEF2FF] to-[#E0F2FE] text-[#4F46E5] text-3xl font-extrabold rounded-full flex items-center justify-center mx-auto mb-5 shadow-[0_8px_20px_rgba(79,70,229,0.15)] ring-2 ring-white">
                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-6 bg-gradient-to-b from-white to-transparent opacity-80 rounded-full blur-[1px]"></div>
-                  <span className="relative z-10">AP</span>
+                  <span className="relative z-10">{getInitials(patientName)}</span>
                 </div>
                 
-                <h2 className="text-2xl font-extrabold text-[#172033] tracking-tight">Aarav Patel</h2>
+                <h2 className="text-2xl font-extrabold text-[#172033] tracking-tight">{patientName}</h2>
                 <p className="text-sm font-medium text-[#64748B] mt-1 mb-8">32 yrs • Male • O+ Blood</p>
                 
                 {/* Glowing Primary Button */}
                 <button 
-                  onClick={() => navigate('/doctor/consultation')} 
+                  onClick={() => navigate('/doctor/consultation', { state: { patient } })} 
                   className="w-full py-3.5 bg-[#4F46E5] text-white font-semibold text-sm rounded-2xl shadow-[0_8px_20px_rgba(79,70,229,0.25)] hover:shadow-[0_12px_30px_rgba(79,70,229,0.4)] hover:-translate-y-0.5 transition-all duration-300"
                 >
                   Start Ambient Scribe
@@ -126,7 +135,7 @@ export default function PatientProfile() {
               )}
             </div>
 
-            <DocumentViewer />
+            <DocumentViewer documents={patient.documents || []} />
           </div>
 
           {/* ========================================= */}

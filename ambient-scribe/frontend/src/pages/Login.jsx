@@ -8,10 +8,13 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [role, setRole] = useState('doctor');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleLogin = (event) => {
     event.preventDefault();
-    login(role);
+    login(email, role, name);
     if (role === 'doctor') navigate('/doctor/dashboard');
     else navigate('/patient/dashboard');
   };
@@ -60,11 +63,26 @@ export default function Login() {
           </div>
 
           <form className="space-y-5" onSubmit={handleLogin}>
+            {role === 'patient' ? (
+              <label className="block">
+                <span className="mb-2 block text-[10px] font-bold tracking-[0.16em] text-[#64748B]">FULL NAME</span>
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Aarav Patel"
+                  className="w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3.5 text-sm text-[#172033] outline-none transition-all duration-300 placeholder:text-[#CBD5E1] focus:border-[#5B4EE4] focus:ring-4 focus:ring-[#EEF2FF]"
+                />
+              </label>
+            ) : null}
             <label className="block">
               <span className="mb-2 block text-[10px] font-bold tracking-[0.16em] text-[#64748B]">WORK EMAIL</span>
               <input
                 type="email"
                 required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@clinic.com"
                 className="w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3.5 text-sm text-[#172033] outline-none transition-all duration-300 placeholder:text-[#CBD5E1] focus:border-[#5B4EE4] focus:ring-4 focus:ring-[#EEF2FF]"
               />
@@ -74,6 +92,8 @@ export default function Login() {
               <input
                 type="password"
                 required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 className="w-full rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3.5 text-sm text-[#172033] outline-none transition-all duration-300 placeholder:text-[#CBD5E1] focus:border-[#5B4EE4] focus:ring-4 focus:ring-[#EEF2FF]"
               />

@@ -1,12 +1,56 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import AppointmentCalendar from '../../components/patient/AppointmentCalendar';
 import DocumentUploader from '../../components/patient/DocumentUploader';
 import PreVisitAudioRecorder from '../../components/patient/PreVisitAudioRecorder';
+import { useAuth } from '../../context/AuthContext';
 
 export default function BookAppointment() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+
+  const handleConfirmAppointment = () => {
+    const newAppt = {
+      id: Date.now(),
+      patientName: user?.name && user.name.trim() !== '' ? user.name : 'New Patient',
+      time: '11:30 AM',
+      condition: 'General Consultation',
+      isNext: false
+    };
+
+    const existingAppts = JSON.parse(localStorage.getItem('demo_appointments') || '[]');
+    localStorage.setItem('demo_appointments', JSON.stringify([...existingAppts, newAppt]));
+
+    if (uploadedFiles.length > 0) {
+      const todayLabel = new Date().toLocaleString('en-US', { month: 'short', day: '2-digit' });
+      const newDocs = uploadedFiles.map((file, index) => ({
+        id: Date.now() + index,
+        name: file.name,
+        type: 'Lab Report',
+        date: todayLabel,
+        patientEmail: user?.email,
+      }));
+
+      newAppt.documents = newDocs;
+
+      let existingDocs = [];
+      try {
+        existingDocs = JSON.parse(localStorage.getItem('patient_uploaded_docs') || '[]');
+      } catch (error) {
+        existingDocs = [];
+      }
+      localStorage.setItem(
+        'patient_uploaded_docs',
+        JSON.stringify([...(Array.isArray(existingDocs) ? existingDocs : []), ...newDocs])
+      );
+    }
+
+    localStorage.setItem('demo_appointments', JSON.stringify([...existingAppts, newAppt]));
+
+    navigate('/patient/dashboard');
+  };
 
   return (
     <div className="relative h-screen bg-[#FAFAFA] overflow-hidden flex flex-col items-center">
@@ -49,11 +93,11 @@ export default function BookAppointment() {
           {/* Right Column (Document Uploader + Confirm Button) */}
           <div className="lg:col-span-5 flex flex-col gap-6 h-full">
             <div className="flex-1 min-h-0">
-              <DocumentUploader />
+              <DocumentUploader onFilesChange={setUploadedFiles} />
             </div>
             <div className="flex-none flex justify-end">
               <button 
-                onClick={() => navigate('/patient/dashboard')}
+                onClick={handleConfirmAppointment}
                 className="flex items-center justify-center w-full lg:w-auto px-10 py-4 bg-[#4F46E5] text-white font-semibold text-sm rounded-2xl shadow-[0_8px_20px_rgba(79,70,229,0.25)] hover:shadow-[0_12px_30px_rgba(79,70,229,0.4)] hover:-translate-y-1 transition-all duration-300"
               >
                 Confirm Appointment <CheckCircle2 className="w-5 h-5 ml-2" />
